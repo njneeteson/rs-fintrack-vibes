@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FinTrack User Manual</title>
+<style>
+  @page { size: Letter; margin: 18mm 16mm 18mm 16mm; }
+  :root { --ink: #1d1d1b; --muted: #5b5a56; --line: #d9d8d2; --accent: #2a78d6; --soft: #f3f6fb; --warn: #8a5a00; --warn-bg: #fff6e0; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.5; margin: 0; }
+  h1, h2, h3 { line-height: 1.25; }
+  h1 { font-size: 22pt; margin: 0 0 6pt; }
+  h2 { font-size: 16pt; margin: 0 0 8pt; padding-bottom: 4pt; border-bottom: 2px solid var(--accent); }
+  h3 { font-size: 12pt; margin: 14pt 0 4pt; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt 18pt; padding: 0; }
+  li { margin-bottom: 3pt; }
+  code, kbd { font-family: Consolas, "Cascadia Mono", monospace; font-size: 9.5pt; background: #f1f0ec; padding: 0 3px; border-radius: 3px; }
+  kbd { border: 1px solid var(--line); }
+  .chapter { break-before: page; }
+  .cover { height: 230mm; display: flex; flex-direction: column; justify-content: center; }
+  .cover h1 { font-size: 40pt; margin-bottom: 4pt; }
+  .cover .sub { font-size: 16pt; color: var(--muted); margin-bottom: 24pt; }
+  .cover img { width: 100%; border: 1px solid var(--line); border-radius: 6px; }
+  .cover .meta { margin-top: 18pt; color: var(--muted); }
+  figure { margin: 8pt 0 12pt; break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid var(--line); border-radius: 4px; }
+  figcaption { font-size: 9pt; color: var(--muted); margin-top: 3pt; }
+  .tip, .note, .warn { border-radius: 5px; padding: 7pt 10pt; margin: 8pt 0; break-inside: avoid; }
+  .tip { background: var(--soft); border-left: 4px solid var(--accent); }
+  .warn { background: var(--warn-bg); border-left: 4px solid #eda100; }
+  .tip b:first-child, .warn b:first-child { margin-right: 4pt; }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; font-size: 9.5pt; break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 4pt 6pt; text-align: left; vertical-align: top; }
+  th { background: #f1f0ec; }
+  .toc ol { list-style: decimal; margin-left: 18pt; }
+  .toc li { margin-bottom: 4pt; }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .steps li { margin-bottom: 5pt; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; }
+  .small { font-size: 9pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <h1>FinTrack</h1>
+  <div class="sub">User Manual — private, offline household finances</div>
+  <img src="images/dashboard.png" alt="FinTrack dashboard">
+  <div class="meta">Version 0.1 · FinTrack never connects to the internet. All your data stays in a folder on your computer.</div>
+</section>
+
+<section class="chapter toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#welcome">Welcome</a></li>
+    <li><a href="#databases">Databases: creating, opening and the default database</a></li>
+    <li><a href="#tour">A tour of the window</a></li>
+    <li><a href="#accounts">Accounts</a></li>
+    <li><a href="#import">Importing bank CSV files</a></li>
+    <li><a href="#mapping">Mapping a new CSV format</a></li>
+    <li><a href="#categories">Categories</a></li>
+    <li><a href="#rules">Mapping rules and unmapped transactions</a></li>
+    <li><a href="#transactions">Working with transactions</a></li>
+    <li><a href="#dashboard">The dashboard</a></li>
+    <li><a href="#analytics">Analytics</a></li>
+    <li><a href="#budgets">Budgets</a></li>
+    <li><a href="#mortgage">Mortgage tracker</a></li>
+    <li><a href="#settings">Settings, themes and backups</a></li>
+    <li><a href="#faq">Troubleshooting &amp; FAQ</a></li>
+    <li><a href="#reference">Reference: built-in formats, shortcuts and files</a></li>
+  </ol>
+</section>
+
+<section class="chapter" id="welcome">
+  <h2>1. Welcome</h2>
+  <p>FinTrack helps you understand your household finances using the CSV files your bank already lets you download. You import those files, FinTrack works out which account they belong to and skips anything you've already imported, and your rules sort every transaction into categories such as <i>Groceries / Save on Foods</i> or <i>Income / Mayfair</i>. From there you get dashboards, charts, budgets and a mortgage payoff planner.</p>
+  <h3>What makes FinTrack different</h3>
+  <ul>
+    <li><b>Completely offline.</b> FinTrack contains no internet code at all. It never connects to your bank, never uploads anything and never checks for updates.</li>
+    <li><b>Your data, your folder.</b> Everything is kept in a database folder you choose. Copy it to back it up; open it on another computer by copying it there.</li>
+    <li><b>Works with any bank.</b> Scotiabank and BMO exports are recognised out of the box; any other bank's CSV can be mapped once and is then recognised automatically.</li>
+  </ul>
+  <h3>The five-minute version</h3>
+  <ol class="steps">
+    <li><b>Just looking?</b> Click <b>Enter demo mode</b> on the start screen to explore a sample household first (see chapter 2).</li>
+    <li><b>Create a database</b> (start screen ▸ <i>Create a new database</i>).</li>
+    <li><b>Import</b> a CSV from your bank (<i>Import CSV</i>, or drag the file onto the window). Create the account when asked.</li>
+    <li><b>Categorize</b>: open <i>Mapping rules ▸ Unmapped</i> and click <i>Create rule…</i> beside each payee.</li>
+    <li><b>Look around</b>: Dashboard, Analytics, Budgets and Mortgage.</li>
+    <li><b>Make it the default</b> so it opens automatically next time (Settings ▸ Startup).</li>
+  </ol>
+  <div class="tip"><b>Tip:</b> Wherever you see a small <b>ℹ</b> next to a control, hover over it with the mouse for an explanation. The <i>Help</i> page in the app contains a searchable version of this guide.</div>
+</section>
+
+<section class="chapter" id="databases">
+  <h2>2. Databases</h2>
+  <p>A FinTrack <b>database</b> is a folder on your computer containing a file named <code>fintrack.sqlite</code> (all your data) and a folder named <code>imports</code> (a copy of every CSV you imported). You can have as many databases as you like — for example one for the household and one for a small business.</p>
+  <h3>Creating a database</h3>
+  <ol class="steps">
+    <li>On the start screen (or <i>File ▸ New database…</i>) type a <b>Name</b>, such as <i>Household Finances</i>.</li>
+    <li>Click <b>Choose folder…</b> and pick where the database folder should be created, e.g. your Documents folder.</li>
+    <li>Click <b>Create database</b>. FinTrack creates the folder, fills it with a starter set of categories and the built-in bank formats, and opens it.</li>
+  </ol>
+  <h3>Opening a database</h3>
+  <p>Use <i>File ▸ Open database…</i> (or the start screen) and choose the database <b>folder</b> — the one that contains <code>fintrack.sqlite</code>. Recently opened databases are listed on the start screen and under <i>File ▸ Open recent</i>.</p>
+  <h3>The default database</h3>
+  <p>The first database you open becomes the default. FinTrack opens the default database automatically when it starts. To change it, open <b>Settings ▸ Startup</b>, then click <i>Use the current database</i> or <i>Choose folder…</i>. Untick <i>Open the default database when FinTrack starts</i> if you prefer to choose each time.</p>
+  <div class="tip"><b>Tip:</b> <i>File ▸ Show database folder</i> opens the folder in File Explorer.</div>
+  <h3>Trying the demo</h3>
+  <p>When no database is open, the start screen offers <b>Enter demo mode</b> (also available any time as <i>File ▸ Try the demo</i>). FinTrack builds a sample household — 18 months of chequing and credit-card transactions, mapping rules, budgets and a mortgage with prepayments — and opens it.</p>
+  <figure><img src="images/start.png" alt="Start screen"><figcaption>The start screen, shown when no database is open.</figcaption></figure>
+  <ul>
+    <li>A blue <b>Demo mode</b> banner stays at the top of every page, and the status bar says <i>Demo database (temporary)</i>.</li>
+    <li>Change anything you like: create rules for the unmapped payees, edit budgets, add mortgage prepayments.</li>
+    <li><b>Try importing the sample CSVs</b> re-imports the bank files the demo was built from. Every row is already there, so you'll see duplicate detection at work.</li>
+    <li><b>Exit demo</b> (or closing FinTrack) deletes the demo. It is never added to your recent databases or made the default, and it never touches your own data.</li>
+  </ul>
+  <figure><img src="images/demo-mode.png" alt="Demo mode"><figcaption>Demo mode, with its banner at the top.</figcaption></figure>
+</section>
+
+<section class="chapter" id="tour">
+  <h2>3. A tour of the window</h2>
+  <figure><img src="images/transactions.png" alt="Main window"><figcaption>The main window: menu bar (top), navigation (left), the current page (centre) and the status bar (bottom).</figcaption></figure>
+  <table>
+    <tr><th>Area</th><th>What it does</th></tr>
+    <tr><td>Menu bar</td><td><i>File</i>: new/open/close database, import, backup, show folder, quit. <i>Help</i>: user guide and About. On the right, a button switches between light and dark mode.</td></tr>
+    <tr><td>Navigation</td><td>Pages, grouped as: <i>Dashboard, Transactions, Import CSV</i> · <i>Mapping rules, Categories, Accounts</i> · <i>Analytics, Budgets, Mortgage</i> · <i>Settings, Help</i>. <i>Mapping rules</i> shows the number of uncategorized transactions in brackets.</td></tr>
+    <tr><td>Status bar</td><td>The open database folder, the "offline" reminder, and messages such as "Imported 42 transactions". Error messages stay until you close them with ✖.</td></tr>
+  </table>
+  <h3>Common controls</h3>
+  <ul>
+    <li><b>Dropdowns</b> for categories have a <i>Type to filter…</i> box at the top — start typing to find a category quickly.</li>
+    <li><b>Money fields</b> can be typed into, or dragged left/right to change the value.</li>
+    <li><b>Dates</b> open a calendar when clicked.</li>
+    <li><b>Delete buttons</b> (🗑) always ask for confirmation in place: click <i>Yes</i> to proceed or <i>Cancel</i>.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="accounts">
+  <h2>4. Accounts</h2>
+  <p>An account represents one bank account or card: your chequing account, a savings account, a credit card. Every transaction belongs to exactly one account. You can create accounts on the <b>Accounts</b> page, or right inside the import screen the first time you import a file for that account.</p>
+  <figure><img src="images/accounts.png" alt="Accounts page"><figcaption>The Accounts page lists each account with its detection details, number of transactions and balance today.</figcaption></figure>
+  <table>
+    <tr><th>Field</th><th>Purpose</th></tr>
+    <tr><td>Name, Bank, Type</td><td>How the account is shown everywhere in FinTrack.</td></tr>
+    <tr><td>Account number</td><td>The full number or at least the last 4 digits. If a CSV contains an account or card number column, FinTrack uses it to pick the account automatically. Masked numbers such as <code>5191********1234</code> are matched by their last four digits.</td></tr>
+    <tr><td>Filename hint</td><td>Text that appears in the names of this account's export files, e.g. <code>visa</code> for <code>Visa_March.csv</code>. Useful for banks whose files contain no account number.</td></tr>
+    <tr><td>Usual CSV format</td><td>Filled in automatically after the first import. If only one account uses a format, files in that format are assigned to it.</td></tr>
+    <tr><td>Opening balance</td><td>The balance just before your first imported transaction. Needed for correct balances and net worth. Use a negative number for money owed on a credit card.</td></tr>
+    <tr><td>Archived</td><td>Hides an old account from pickers and automatic detection while keeping its history.</td></tr>
+  </table>
+  <div class="warn"><b>Careful:</b> deleting an account deletes all of its transactions. Archive it instead if you want to keep the history.</div>
+</section>
+
+<section class="chapter" id="import">
+  <h2>5. Importing bank CSV files</h2>
+  <p>Download a CSV (sometimes called "spreadsheet" or "Excel/CSV") export of your transactions from your bank's website. Then, in FinTrack:</p>
+  <ol class="steps">
+    <li>Open <b>Import CSV</b> and click <b>Choose CSV files…</b>, or simply <b>drag the files onto the FinTrack window</b>. You can select several files; they are processed one after another.</li>
+    <li>FinTrack reads the file and <b>recognises its format</b>. If the format is new, you'll see the column mapper (next chapter).</li>
+    <li>On the review screen, check the <b>account</b>. If FinTrack recognised it, it says <i>(detected automatically)</i>. Otherwise choose it from the list or click <b>➕ New account…</b>, fill in a name and click <i>Create</i>.</li>
+    <li>Check the counts: <b>new</b> transactions will be added, those <b>already imported</b> will be skipped. Open <i>Preview rows</i> to see every row and its status.</li>
+    <li>Click <b>Import N new transactions</b>. Your mapping rules are applied immediately, and a summary tells you how many were categorized.</li>
+  </ol>
+  <figure><img src="images/import-review.png" alt="Import review"><figcaption>Review screen for a re-imported credit-card file: the account was detected from the card number and every row is recognised as already imported.</figcaption></figure>
+  <h3>Overlapping files and duplicates</h3>
+  <p>You don't need to keep track of which dates you've already imported. Export a generous date range each time; FinTrack compares each row with what's already in that account (same date, same amount and same description) and skips the ones it already has. If the same file contains two identical rows — two coffees on the same day for the same amount — both are kept, because they really are two purchases.</p>
+  <h3>Files with several accounts</h3>
+  <p>Some banks put several cards in one file with a card-number column. FinTrack shows one section per account number, each with its own account choice.</p>
+  <h3>Import history and undo</h3>
+  <p>The Import page lists every import with its date, file, format and the number of rows added and skipped. <b>Undo</b> removes every transaction that import added (manual categories and notes on those transactions are lost). A copy of each imported file is kept in the database's <code>imports</code> folder unless you turn this off in Settings.</p>
+</section>
+
+<section class="chapter" id="mapping">
+  <h2>6. Mapping a new CSV format</h2>
+  <p>The first time you import a file from a bank FinTrack doesn't know (or after your bank changes its export layout), FinTrack shows the <b>column mapper</b>. It makes a best guess, so often you only need to check the preview and click <i>Save format &amp; continue</i>.</p>
+  <figure><img src="images/import-mapping.png" alt="Column mapper"><figcaption>Mapping a credit-union export. FinTrack guessed the header row, date format, debit/credit columns and balance column; the bottom section shows exactly how rows will be imported.</figcaption></figure>
+  <table>
+    <tr><th>Setting</th><th>What to choose</th></tr>
+    <tr><td>Header row</td><td>The row containing column names. Lines above it (e.g. "Account statement…") are ignored. Choose <i>No header row</i> if the file starts directly with transactions.</td></tr>
+    <tr><td>Date column &amp; format</td><td>The column with the transaction date. <i>Automatic</i> works for most files; pick a format explicitly if day and month could be confused (e.g. 03/04/2026).</td></tr>
+    <tr><td>Description column</td><td>The main text describing the transaction (payee or merchant).</td></tr>
+    <tr><td>Memo / details columns</td><td>Optional extra text columns. They are searchable and rules can match them.</td></tr>
+    <tr><td>Amount</td><td><i>Single signed column</i> if one column holds amounts with − for money out. <i>Separate debit / credit columns</i> if the bank uses two columns. Tick <i>Flip sign</i> if money out appears as positive numbers (common for credit cards).</td></tr>
+    <tr><td>Direction column</td><td>For files with a column like "Debit/Credit": choose the column and the word that means money out.</td></tr>
+    <tr><td>Account number column</td><td>Optional; enables automatic account detection.</td></tr>
+    <tr><td>Balance column</td><td>Optional; stored for reference.</td></tr>
+    <tr><td>Skip rows</td><td>Ignore rows whose chosen column contains some text, e.g. <code>Pending</code>.</td></tr>
+  </table>
+  <p>Give the format a name and click <b>Save format &amp; continue</b>. From now on, files with the same layout are recognised automatically. To change a format later, import a matching file and click <b>Edit mapping</b> on the review screen; <i>Save as new format</i> keeps the old one.</p>
+  <div class="tip"><b>Tip:</b> Check that money you spent shows as a negative amount in the preview. If it's the other way around, tick <i>Flip sign</i>.</div>
+</section>
+
+<section class="chapter" id="categories">
+  <h2>7. Categories</h2>
+  <p>Categories have two levels: a <b>top-level category</b> (Groceries, Housing, Income) and optional <b>subcategories</b> (Groceries / Save on Foods, Income / Mayfair). A transaction can be assigned to either level. New databases come with a sensible starter set that you can change freely.</p>
+  <figure><img src="images/categories.png" alt="Categories page"><figcaption>The Categories page groups top-level categories by kind and shows how many transactions use each branch.</figcaption></figure>
+  <h3>Kinds: Expense, Income, Transfer</h3>
+  <p>Every top-level category has a kind, which its subcategories share:</p>
+  <ul>
+    <li><b>Expense</b> — counted as spending in analytics and budgets.</li>
+    <li><b>Income</b> — counted as income.</li>
+    <li><b>Transfer</b> — money moving between your own accounts: paying your credit card from chequing, moving money to savings or a TFSA. Transfers are <b>left out</b> of income and spending, so a credit-card payment isn't counted on top of the purchases it pays for.</li>
+  </ul>
+  <h3>Managing categories</h3>
+  <ul>
+    <li><b>Add</b> a top-level category at the top of the page; add a subcategory inside an expanded category.</li>
+    <li><b>✏ Edit</b> to rename, move a subcategory under a different parent, or change a top-level category's kind.</li>
+    <li><b>🗑 Delete</b> removes the category and its subcategories. You can first move their transactions, rules and budget to another category; otherwise those transactions become uncategorized and the rules are deleted.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="rules">
+  <h2>8. Mapping rules and unmapped transactions</h2>
+  <p>A <b>mapping rule</b> tells FinTrack how to categorize transactions automatically, for example: <i>when the description contains "SAVE ON FOODS", assign Groceries / Save on Foods</i>. Rules apply to everything already imported and to every future import.</p>
+  <h3>The Unmapped tab</h3>
+  <figure><img src="images/categorize.png" alt="Unmapped transactions"><figcaption>Uncategorized transactions grouped by payee, with buttons to create a rule or assign a category once.</figcaption></figure>
+  <p>This tab lists uncategorized transactions grouped by payee (the first words of the description, ignoring store numbers and reference codes). For each group:</p>
+  <ul>
+    <li><b>Create rule…</b> opens the rule editor with the payee text already filled in — pick a category and save. Best for anything that recurs.</li>
+    <li><b>Pick category… + Assign once</b> sets a manual category on just these transactions without creating a rule.</li>
+  </ul>
+  <p>Hover a payee to see example descriptions. <i>Open as a list in Transactions</i> shows the same transactions one by one.</p>
+  <h3>The rule editor</h3>
+  <table>
+    <tr><th>Field</th><th>Meaning</th></tr>
+    <tr><td>When</td><td>Which text to look at (description, memo or either) and how: <i>contains</i>, <i>starts with</i>, <i>equals</i> (all ignore upper/lower case and extra spaces) or <i>matches regex</i> for advanced patterns.</td></tr>
+    <tr><td>Direction</td><td>Limit to money out or money in — e.g. only incoming "PAYROLL" is salary.</td></tr>
+    <tr><td>Amount between</td><td>Optional minimum and/or maximum amount, e.g. Costco over $300 is <i>Household</i>, smaller trips are <i>Groceries</i>.</td></tr>
+    <tr><td>Only in account</td><td>Restrict to one account.</td></tr>
+    <tr><td>Assign category</td><td>The category to assign. You can also create a new category right there.</td></tr>
+    <tr><td>Priority</td><td>Rules are checked from the lowest number up; the first rule that matches wins. Give specific rules a lower number than general ones.</td></tr>
+  </table>
+  <p>The bottom of the editor previews every matching transaction, how many are currently unmapped, and how many have manual overrides (those are never changed).</p>
+  <h3>The Rules tab</h3>
+  <p>Lists all rules with their priority, condition, category and how many transactions each currently categorizes. Untick a rule to disable it, use ✏ to edit, 🗑 to delete. <b>Test a description</b> lets you type a description and amount to see which rule would apply. <b>Re-apply all rules</b> re-runs every rule (it happens automatically whenever rules change).</p>
+</section>
+
+<section class="chapter" id="transactions">
+  <h2>9. Working with transactions</h2>
+  <p>The <b>Transactions</b> page shows every transaction, newest first, with totals for what's shown.</p>
+  <h3>Filtering</h3>
+  <p>Filter by date range, account, category (<i>Any</i>, <i>Uncategorized</i> or a specific category with or without its subcategories), search text (description, memo and note), and <i>Manual overrides only</i>. <i>Reset</i> clears all filters.</p>
+  <h3>Changing a transaction's category (override)</h3>
+  <p>Click the category on any row and choose a different one. This is a <b>manual override</b>: it is marked with ✋ and rules will never change it. To go back to the automatic category, choose the <i>Automatic (…)</i> entry at the top of the list. The ℹ next to a category shows which rule assigned it.</p>
+  <h3>Bulk actions</h3>
+  <p>Tick the checkboxes on the left (or the header checkbox to select everything shown). A bar appears with <i>Set category</i>, <i>Clear overrides</i> and <i>Delete</i>.</p>
+  <h3>Notes, rules and export</h3>
+  <ul>
+    <li><b>✏</b> adds a note to a transaction (shown with 📝 and included in search).</li>
+    <li><b>➕</b> creates a mapping rule from that transaction.</li>
+    <li><b>Export CSV…</b> saves the filtered transactions to a CSV file.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="dashboard">
+  <h2>10. The dashboard</h2>
+  <figure><img src="images/dashboard.png" alt="Dashboard"><figcaption>The dashboard summarises the current month.</figcaption></figure>
+  <ul>
+    <li><b>This month</b>: income, spending, net and savings rate, each compared with last month.</li>
+    <li>A reminder with a shortcut when transactions are uncategorized.</li>
+    <li><b>Spending this month</b> by top-level category — click a category to see its transactions.</li>
+    <li><b>Budgets this month</b>, most-used first.</li>
+    <li><b>Last 12 months</b> of income vs spending, with the net line. Hover the bars for exact amounts.</li>
+    <li><b>Accounts</b> with today's balances and <b>upcoming recurring payments</b> for the next 30 days.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="analytics">
+  <h2>11. Analytics</h2>
+  <p>Analytics answers "where does the money come from, and where does it go?". The controls at the top apply to every tab:</p>
+  <table>
+    <tr><th>Control</th><th>Options</th></tr>
+    <tr><td>Range</td><td>This month, last month, last 3 / 6 / 12 months, year to date, last calendar year, all time, or a custom range.</td></tr>
+    <tr><td>Period</td><td>Weekly (weeks start Monday), Monthly, Quarterly, Annual.</td></tr>
+    <tr><td>Show</td><td>Spending or Income.</td></tr>
+    <tr><td>Group by</td><td><b>Top-level category</b> (Groceries), <b>Subcategory</b> (Groceries / Save on Foods), Account, or Payee.</td></tr>
+    <tr><td>Series</td><td>How many groups are drawn in the stacked chart; the rest are combined as "Other".</td></tr>
+  </table>
+  <figure><img src="images/analytics.png" alt="Analytics cash flow"><figcaption>Cash flow: income and spending per month, net line, and a table with savings rate per period.</figcaption></figure>
+  <h3>Tabs</h3>
+  <ul>
+    <li><b>Cash flow</b> — totals, averages per period, savings rate, chart and table.</li>
+    <li><b>Breakdown</b> — stacked chart per period, a ranking for the whole range, and a table with totals, averages and shares. Click any row label to open its transactions.</li>
+    <li><b>Trends</b> — pick one group and see it over time with its average, highest and lowest period.</li>
+    <li><b>Payees</b> — the largest payees by total.</li>
+    <li><b>Recurring</b> — subscriptions and bills charged at a regular interval with a consistent amount, with their monthly and yearly cost.</li>
+    <li><b>Balances &amp; net worth</b> — each account's balance and their total over time (set opening balances on the Accounts page for accurate figures).</li>
+  </ul>
+  <div class="tip"><b>How amounts are counted:</b> transfers are excluded; refunds in a spending category reduce spending; uncategorized transactions count as spending (money out) or income (money in).</div>
+  <figure><img src="images/analytics-dark.png" alt="Analytics in dark mode"><figcaption>The same view in dark mode.</figcaption></figure>
+</section>
+
+<section class="chapter" id="budgets">
+  <h2>12. Budgets</h2>
+  <figure><img src="images/budgets.png" alt="Budgets"><figcaption>Monthly budgets with progress and status.</figcaption></figure>
+  <ul>
+    <li><b>Add a budget</b> at the bottom: choose a category and a monthly amount. <i>Suggest</i> fills in your average over the last three complete months.</li>
+    <li>A <b>top-level budget</b> (e.g. Dining) includes all its subcategories.</li>
+    <li>Choose <b>Monthly, Quarterly, Annual</b> (or Weekly) and step through periods with ◀ ▶. Budgets scale automatically (×3 per quarter, ×12 per year).</li>
+    <li>Status is shown with colour <i>and</i> words: <b>✔ On track</b> (under 85%), <b>⚠ Close to limit</b> (85–100%), <b>⛔ Over budget</b>.</li>
+    <li>Edit a monthly amount directly in the table; it saves when you finish editing. 🗑 removes a budget.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="mortgage">
+  <h2>13. Mortgage tracker</h2>
+  <p>Track how your mortgage is progressing and see how prepayments change the payoff date and total interest. FinTrack uses <b>Canadian semi-annual compounding</b>, as required for fixed-rate mortgages in Canada.</p>
+  <figure><img src="images/mortgage.png" alt="Mortgage"><figcaption>Inputs on the left; progress, projection, balance chart and schedule on the right.</figcaption></figure>
+  <h3>Setting up</h3>
+  <ol class="steps">
+    <li>Click <b>➕ Add mortgage</b>.</li>
+    <li>Enter the <b>original principal</b>, <b>interest rate</b>, <b>amortization</b> (e.g. 25 years), <b>start date</b> (the date the mortgage was funded — the first payment is one period later) and <b>payment frequency</b>.</li>
+    <li>If your lender's payment differs slightly from FinTrack's calculation, enter it as a <b>payment override</b>.</li>
+    <li>Click <b>💾 Save details</b>. (The projection updates as you type, even before saving.)</li>
+  </ol>
+  <h3>Payment frequencies</h3>
+  <p>Monthly, semi-monthly, bi-weekly and weekly spread the same yearly cost over more payments. <b>Accelerated</b> bi-weekly/weekly pay half/a quarter of the monthly payment every two weeks/every week — equivalent to one extra monthly payment a year — and pay the mortgage off years sooner.</p>
+  <h3>Prepayments and what-ifs</h3>
+  <ul>
+    <li>Add <b>prepayments</b> with a date and amount (past ones you made, or future ones you're planning). The <b>Projection</b> card compares the baseline with your plan: payoff date, total interest, and a summary like <i>"Saves $48,535 in interest and pays off 2 yr 6 mo sooner"</i>.</li>
+    <li>Untick a prepayment to leave it out and compare scenarios.</li>
+    <li><b>Extra per payment</b> explores paying a little more every time — it isn't saved.</li>
+  </ul>
+  <h3>Rate changes and renewals</h3>
+  <p>When you renew (or your variable rate changes), add the new rate and the date it takes effect. The payment is recalculated from that date for the remaining amortization, keeping the time you've already saved with prepayments.</p>
+  <h3>Progress and schedule</h3>
+  <p><i>Progress today</i> shows the balance, principal repaid, interest paid and payments made according to the schedule. The balance chart compares baseline and plan (dashed line = today). The schedule can be shown per year or per payment (past payments are dimmed).</p>
+  <div class="tip"><b>Tip:</b> the figures are a projection based on the numbers you enter. Your lender's statement is the authority — if they differ, enter your actual payment as an override and add rate changes at renewal.</div>
+</section>
+
+<section class="chapter" id="settings">
+  <h2>14. Settings, themes and backups</h2>
+  <figure><img src="images/settings.png" alt="Settings"><figcaption>Settings: startup database, theme, import options and file locations.</figcaption></figure>
+  <ul>
+    <li><b>Startup</b> — the default database and whether it opens automatically.</li>
+    <li><b>Appearance</b> — <i>Follow system</i>, <i>Light</i> or <i>Dark</i>. The ☀/🌙 button in the menu bar switches quickly.</li>
+    <li><b>Importing</b> — keep a copy of imported CSVs; apply rules to new imports.</li>
+    <li><b>Privacy &amp; files</b> — where the settings file lives; clear the recent list.</li>
+  </ul>
+  <h3>Backups</h3>
+  <p><i>File ▸ Back up database…</i> writes a complete, consistent copy of the database to a single <code>.sqlite</code> file. To restore, create an empty folder, put the backup in it renamed to <code>fintrack.sqlite</code>, and open that folder. You can also back up by copying the whole database folder while FinTrack is closed.</p>
+  <figure><img src="images/dashboard-dark.png" alt="Dark mode"><figcaption>Dark mode.</figcaption></figure>
+</section>
+
+<section class="chapter" id="faq">
+  <h2>15. Troubleshooting &amp; FAQ</h2>
+  <h3>My file isn't recognised, or amounts have the wrong sign</h3>
+  <p>Import it, then use <i>Edit mapping</i> on the review screen (or map it when asked). Check the preview: money you spent should be negative. Tick <i>Flip sign</i> if not.</p>
+  <h3>Some transactions appear twice</h3>
+  <p>This happens when the bank changes a transaction's description between exports — usually a <i>pending</i> transaction that later posts with a different text. Use <i>Skip rows</i> in the format mapping to ignore pending rows, and delete the extra copy on the Transactions page.</p>
+  <h3>I imported a file into the wrong account</h3>
+  <p>Go to <i>Import CSV ▸ Import history</i>, click <i>Undo</i> for that import, and import the file again choosing the right account.</p>
+  <h3>A rule doesn't categorize a transaction</h3>
+  <p>Use <i>Mapping rules ▸ Rules ▸ Test a description</i>. Possible causes: another rule with a lower priority number matches first; the rule is limited by direction, amount or account; the transaction has a manual override (✋), which rules never change.</p>
+  <h3>Credit-card payments are counted as spending</h3>
+  <p>Categorize both sides of the payment (the payment out of chequing and the payment received on the card) with a <b>Transfer</b> category such as <i>Transfers / Credit Card Payment</i>.</p>
+  <h3>Balances look wrong</h3>
+  <p>Set each account's <b>opening balance</b> (Accounts ▸ ✏ Edit) to its balance just before the first imported transaction.</p>
+  <h3>Is my data ever sent anywhere?</h3>
+  <p>No. FinTrack contains no internet code. Your data is only in your database folder and a small settings file. The database isn't encrypted, so keep it on an encrypted drive if others use your computer.</p>
+</section>
+
+<section class="chapter" id="reference">
+  <h2>16. Reference</h2>
+  <h3>Built-in CSV formats</h3>
+  <table>
+    <tr><th>Format</th><th>Recognised by</th><th>Notes</th></tr>
+    <tr><td>Scotiabank — bank account (classic)</td><td>5 columns, no header: date, amount, -, description, sub-description</td><td>Signed amounts</td></tr>
+    <tr><td>Scotiabank — credit card (classic)</td><td>3 columns, no header: date, description, amount</td><td>Signed amounts</td></tr>
+    <tr><td>Scotiabank — online banking export</td><td>Header: Filter, Date, Description, Sub-description, Status, Type of Transaction, Amount</td><td>Direction from "Type of Transaction"; pending rows skipped</td></tr>
+    <tr><td>BMO — bank account</td><td>Header: First Bank Card, Transaction Type, Date Posted, Transaction Amount, Description</td><td>Account number from card column</td></tr>
+    <tr><td>BMO — credit card</td><td>Header: Item #, Card #, Transaction Date, Posting Date, Transaction Amount, Description</td><td>Purchases flipped to negative; card number used for detection</td></tr>
+  </table>
+  <p class="small">Banks occasionally change their export layouts. Every built-in format can be edited, and new ones can be saved.</p>
+  <h3>Files and folders</h3>
+  <table>
+    <tr><th>What</th><th>Where</th></tr>
+    <tr><td>Your data</td><td><code>&lt;database folder&gt;\fintrack.sqlite</code></td></tr>
+    <tr><td>Imported CSV copies</td><td><code>&lt;database folder&gt;\imports\</code></td></tr>
+    <tr><td>Settings</td><td><code>%APPDATA%\FinTrack\config\settings.json</code> (shown on the Settings page)</td></tr>
+  </table>
+  <h3>Starting FinTrack from a shortcut or command line</h3>
+  <table>
+    <tr><th>Command</th><th>Effect</th></tr>
+    <tr><td><code>fintrack --demo</code></td><td>Starts straight into demo mode.</td></tr>
+    <tr><td><code>fintrack --page budgets</code></td><td>Opens directly on a page (dashboard, transactions, import, categorize, categories, accounts, analytics, budgets, mortgage, settings, help).</td></tr>
+    <tr><td><code>fintrack statement.csv</code></td><td>Opens the default database with the file queued for import — so you can use <i>Open with ▸ FinTrack</i> on CSV files.</td></tr>
+  </table>
+  <h3>Glossary</h3>
+  <table>
+    <tr><td><b>Mapping rule</b></td><td>An automatic "if the text matches, assign this category" instruction.</td></tr>
+    <tr><td><b>Override</b></td><td>A category you chose by hand for one transaction; rules never change it.</td></tr>
+    <tr><td><b>Unmapped</b></td><td>A transaction without a category.</td></tr>
+    <tr><td><b>Transfer</b></td><td>Money moving between your own accounts; excluded from income and spending.</td></tr>
+    <tr><td><b>Amortization</b></td><td>The total time to pay the mortgage off at the regular payment.</td></tr>
+    <tr><td><b>Prepayment</b></td><td>An extra lump-sum payment that goes straight to principal.</td></tr>
+  </table>
+</section>
+
+</body>
+</html>
