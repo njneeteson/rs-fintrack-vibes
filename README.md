@@ -30,6 +30,7 @@ internet. All data lives in a folder you choose.
 10. [Extending FinTrack](#extending-fintrack)
 11. [Privacy and security](#privacy-and-security)
 12. [Known limitations](#known-limitations)
+13. [License](#license)
 
 ---
 
@@ -388,3 +389,7 @@ The database tests run against temporary on-disk databases.
 - If a bank changes a transaction's description between exports (e.g. pending → posted), the two versions are not recognised as duplicates; use the *skip rows* filter for pending rows or delete the duplicate manually.
 - Decimal-comma number formats (`1.234,56`) are not supported.
 - Balances are computed from opening balance + imported transactions; the bank's own running balance column is stored but not used for reconciliation.
+
+## License
+
+FinTrack is released under the [MIT License](LICENSE).
