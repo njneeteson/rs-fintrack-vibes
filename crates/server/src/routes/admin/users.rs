@@ -86,7 +86,14 @@ fn add_user_form(cx: &AdminCtx) -> Markup {
 }
 
 async fn list(cx: AdminCtx) -> AppResult<Page> {
-    let users = cx.st.auth.users()?;
+    // The guest account has its own tab.
+    let users: Vec<User> = cx
+        .st
+        .auth
+        .users()?
+        .into_iter()
+        .filter(|u| !u.guest)
+        .collect();
     let body = html! {
         (heading("Admin", "Manage who can sign in and what they can see.", html! {}))
         (admin_tabs(&cx, USERS))
@@ -139,8 +146,10 @@ async fn create(cx: AdminCtx, Form(f): Form<UserForm>) -> AppResult<Response> {
     Ok(flash::report(&cx.st, &back, result))
 }
 
+/// A person's account (the guest account is managed on its own tab).
 fn load(cx: &AdminCtx, id: i64) -> AppResult<User> {
-    cx.st.auth.user(id)?.ok_or(AppError::NotFound)
+    let user = cx.st.auth.user(id)?.filter(|u| !u.guest);
+    user.ok_or(AppError::NotFound)
 }
 
 fn edit_form(cx: &AdminCtx, u: &User) -> Markup {

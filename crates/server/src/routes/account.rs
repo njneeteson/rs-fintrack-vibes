@@ -4,7 +4,7 @@ use crate::auth::session::append_cookie;
 use crate::auth::store::Theme;
 use crate::auth::{password, start_session};
 use crate::error::AppResult;
-use crate::extract::Ctx;
+use crate::extract::{Ctx, PersonCtx};
 use crate::flash;
 use crate::form::{key, opt_id};
 use crate::state::Shared;
@@ -68,7 +68,7 @@ fn preferences_form(cx: &Ctx) -> Markup {
     }
 }
 
-async fn show(cx: Ctx) -> AppResult<Page> {
+async fn show(cx: PersonCtx) -> AppResult<Page> {
     let others = cx.st.auth.session_count(cx.user.id)? - 1;
     let signed_in_as = format!(
         "Signed in as {} ({}).",
@@ -92,7 +92,7 @@ async fn show(cx: Ctx) -> AppResult<Page> {
     Ok(page(&cx, "My account", body))
 }
 
-async fn password_page(cx: Ctx) -> Page {
+async fn password_page(cx: PersonCtx) -> Page {
     let body = html! {
         (heading("Choose a new password", "", html! {}))
         @if cx.user.must_change_password {
@@ -112,7 +112,7 @@ pub struct PreferencesForm {
     default_household: String,
 }
 
-async fn save_preferences(cx: Ctx, Form(f): Form<PreferencesForm>) -> AppResult<Response> {
+async fn save_preferences(cx: PersonCtx, Form(f): Form<PreferencesForm>) -> AppResult<Response> {
     let theme: Theme = key(&f.theme, "theme")?;
     let default =
         opt_id(&f.default_household).filter(|id| cx.access.iter().any(|a| a.household.id == *id));
@@ -133,7 +133,7 @@ pub struct PasswordForm {
     confirm: String,
 }
 
-async fn change_password(cx: Ctx, Form(f): Form<PasswordForm>) -> AppResult<Response> {
+async fn change_password(cx: PersonCtx, Form(f): Form<PasswordForm>) -> AppResult<Response> {
     let back = cx.url("/account/password");
     let stored = cx.st.auth.password_hash(cx.user.id)?.unwrap_or_default();
     let current = f.current.clone();
@@ -168,7 +168,7 @@ async fn change_password(cx: Ctx, Form(f): Form<PasswordForm>) -> AppResult<Resp
     Ok(resp)
 }
 
-async fn revoke_other_sessions(cx: Ctx) -> AppResult<Response> {
+async fn revoke_other_sessions(cx: PersonCtx) -> AppResult<Response> {
     cx.st
         .auth
         .delete_sessions_for(cx.user.id, Some(&cx.session))?;

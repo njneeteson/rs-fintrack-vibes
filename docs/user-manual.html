@@ -123,6 +123,9 @@
           own (at least 8 characters).</li>
       </ol>
       <p>Forgotten your password? Ask an admin to reset it; you'll get a new temporary one.</p>
+      <p><b>Visiting?</b> If an admin has turned on guest access, the sign-in page has a
+        <b>Continue as guest</b> button. No account is needed, and you see only what the admin
+        allows guests to see.</p>
       <div class="tip"><b>Tip</b> After several wrong passwords FinTrack makes you wait a little
         before trying again. That protects everyone's accounts.</div>
     </div>
@@ -455,6 +458,22 @@ docker compose up -d --build</code></pre>
     every household. Changes apply immediately, even to someone who is signed in.</p>
   <figure><img src="images/view-only.png" alt="View-only member">
     <figcaption>A view-only member sees no checkboxes, category pickers or Import CSV.</figcaption></figure>
+  <h3>Guest access</h3>
+  <figure><img src="images/admin-guest.png" alt="Guest settings"></figure>
+  <p>The <b>Guest</b> tab lets visitors look around without an account of their own:</p>
+  <ul>
+    <li>Tick <b>Allow signing in as a guest</b>. The sign-in page then shows a
+      <b>Continue as guest</b> button.</li>
+    <li>For each household, choose what guests can do: <b>No access</b>, <b>View only</b> or
+      <b>Can edit</b>. The guest also appears as a row in the Access grid.</li>
+    <li>Optionally change the name guests see in the menu.</li>
+  </ul>
+  <p>The guest account is shared by everyone who uses the button. It has no password, can't
+    open <i>My account</i>, and its sessions end when the browser closes. Turning guest access
+    off signs out anyone browsing as a guest; the access settings are kept for next time.</p>
+  <div class="warn"><b>Note</b> Anyone who can reach FinTrack on your network can use the guest
+    button while it's on. Give guests <i>View only</i> unless you really want visitors to change
+    things.</div>
 </section>
 
 <section class="chapter" id="households">

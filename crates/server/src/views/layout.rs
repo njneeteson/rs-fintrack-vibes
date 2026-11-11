@@ -88,10 +88,14 @@ fn user_menu(cx: &Ctx) -> Markup {
         details class="menu" {
             summary { (cx.user.name()) }
             div class="menu-body" {
-                div class="menu-note" {
-                    "Signed in as " (cx.user.username) " · " (cx.user.role.label())
+                @if cx.user.guest {
+                    div class="menu-note" { "Browsing as a guest" }
+                } @else {
+                    div class="menu-note" {
+                        "Signed in as " (cx.user.username) " · " (cx.user.role.label())
+                    }
+                    a href=(cx.url("/account")) { "My account" }
                 }
-                a href=(cx.url("/account")) { "My account" }
                 @if cx.user.is_admin() {
                     a href=(cx.url("/admin/users")) { "Manage users" }
                     a href=(cx.url("/admin/households")) { "Manage households" }

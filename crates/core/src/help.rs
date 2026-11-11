@@ -127,6 +127,10 @@ pub const TOPICS: &[Topic] = &[
             tab) and can open every household. Everyone else sees only the households an admin \
             gives them: View only (dashboards, transactions and reports) or Can edit (also \
             import, categorize, budgets and the mortgage).\n\n\
+            Admins can also turn on guest access (Manage users ▸ Guest). Visitors then use \
+            Continue as guest on the sign-in page and see only the households, and the access, \
+            the admin chose for guests. The guest account is shared and has no password or \
+            settings.\n\n\
             Choose your theme, the household that opens when you sign in, and your password on \
             My account.",
     },

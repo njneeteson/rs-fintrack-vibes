@@ -35,7 +35,13 @@ impl AuthDb {
                      WHERE s.token_hash=?1 AND s.expires_at > ?2 AND u.disabled = 0"
                 ),
                 params![token_hash, now],
-                |r| Ok((user_from_row(r)?, r.get(10)?, r.get(11)?)),
+                |r| {
+                    Ok((
+                        user_from_row(r)?,
+                        r.get(USER_COL_COUNT)?,
+                        r.get(USER_COL_COUNT + 1)?,
+                    ))
+                },
             )
             .optional()?)
     }

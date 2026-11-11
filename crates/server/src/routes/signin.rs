@@ -27,6 +27,7 @@ use std::time::Instant;
 pub fn routes() -> Router<Shared> {
     Router::new()
         .route("/login", get(login_page).post(login))
+        .route("/login/guest", post(guest_login))
         .route("/logout", post(logout))
         .route("/setup", get(setup_page).post(setup))
 }
@@ -109,6 +110,12 @@ fn login_form(st: &Shared, headers: &HeaderMap, username: &str, next: &str) -> M
             }))
             (checkbox("remember", false, html! { "Keep me signed in on this device" }))
             button type="submit" class="primary" { "Sign in" }
+        }
+        @if guest_enabled(st) {
+            form method="post" action=(st.url("/login/guest")) class="guest-login" {
+                input type="hidden" name="next" value=(next);
+                button type="submit" { "Continue as guest" }
+            }
         }
         @if st.setup_token().is_some() {
             p class="muted" {
@@ -193,6 +200,33 @@ async fn login(
     st.limiter.record_success(&keys);
     tracing::info!("{} signed in from {ip}", user.username);
     sign_in(&st, &user, checked(&f.remember), &next)
+}
+
+fn guest_enabled(st: &Shared) -> bool {
+    st.auth.enabled_guest().ok().flatten().is_some()
+}
+
+#[derive(Deserialize)]
+pub struct GuestForm {
+    next: Option<String>,
+}
+
+/// "Continue as guest": a browser-session sign-in to the shared guest account,
+/// if an admin has turned guest access on.
+async fn guest_login(
+    State(st): State<Shared>,
+    ClientIp(ip): ClientIp,
+    headers: HeaderMap,
+    Form(f): Form<GuestForm>,
+) -> AppResult<Response> {
+    let next = safe_next(&st, f.next.as_deref());
+    let Some(guest) = st.auth.enabled_guest()? else {
+        let form = login_form(&st, &headers, "", &next);
+        let page = bare_page(&st, "Sign in", Some("Guest access is turned off."), form);
+        return Ok((StatusCode::FORBIDDEN, page).into_response());
+    };
+    tracing::info!("guest signed in from {ip}");
+    sign_in(&st, &guest, false, &next)
 }
 
 async fn logout(State(st): State<Shared>, headers: HeaderMap) -> AppResult<Response> {

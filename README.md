@@ -181,6 +181,21 @@ or without a trailing slash.
 - Anyone can change their own name, theme, starting household and password
   under **My account**, and sign out their other devices.
 
+### Guest access
+
+Admins can let visitors look around without an account of their own
+(**Manage users → Guest** tab):
+
+- **Allow signing in as a guest** adds a **Continue as guest** button to the
+  sign-in page. Off by default.
+- For each household, choose what guests can do: no access, view only, or can
+  edit. The guest also appears in the **Access** grid.
+- The guest account is shared and has no password: it can't be used with the
+  normal sign-in form, has no *My account* page, and its sessions end when the
+  browser closes.
+- Turning guest access off signs out anyone browsing as a guest. Their access
+  settings are kept for next time.
+
 ---
 
 ## Data, backups and moving from the desktop app

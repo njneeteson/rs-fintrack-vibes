@@ -172,6 +172,32 @@ impl FromRequestParts<Shared> for EditCtx {
     }
 }
 
+/// A signed-in person, not the shared guest account (which has no settings or
+/// password of its own).
+#[derive(Clone)]
+pub struct PersonCtx(pub Ctx);
+
+impl Deref for PersonCtx {
+    type Target = Ctx;
+    fn deref(&self) -> &Ctx {
+        &self.0
+    }
+}
+
+impl FromRequestParts<Shared> for PersonCtx {
+    type Rejection = AppError;
+
+    async fn from_request_parts(parts: &mut Parts, st: &Shared) -> AppResult<Self> {
+        let cx = Ctx::from_request_parts(parts, st).await?;
+        if cx.user.guest {
+            return Err(AppError::Forbidden(
+                "The guest account is shared, so it has no settings of its own.",
+            ));
+        }
+        Ok(Self(cx))
+    }
+}
+
 #[derive(Clone)]
 pub struct AdminCtx(pub Ctx);
 

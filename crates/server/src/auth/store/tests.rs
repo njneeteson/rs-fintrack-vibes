@@ -99,3 +99,46 @@ fn sessions_expire_and_die_with_disable() {
     .unwrap();
     assert_eq!(db.session_count(u).unwrap(), 0);
 }
+
+#[test]
+fn guest_account_lifecycle() {
+    let db = AuthDb::in_memory().unwrap();
+    assert!(db.guest().unwrap().is_none());
+    // A real person called "guest" keeps their name; the guest account gets another.
+    db.create_user(&fields("guest", Role::User), "h", false)
+        .unwrap();
+    let g = db.set_guest(true, "Visitor").unwrap();
+    assert!(g.guest && !g.disabled);
+    assert_eq!(g.username, "guest-2");
+    assert_eq!(g.name(), "Visitor");
+    assert_eq!(db.enabled_guest().unwrap().map(|u| u.id), Some(g.id));
+    // No password sign-in for the guest account.
+    assert!(db.credentials("guest-2").unwrap().is_none());
+    assert!(!db.credentials("guest").unwrap().unwrap().0.guest);
+    // Turning it off keeps the account (and its access) but signs guests out.
+    db.insert_session("t", g.id, false, i64::MAX).unwrap();
+    let off = db.set_guest(false, "Visitor").unwrap();
+    assert_eq!(off.id, g.id);
+    assert!(off.disabled);
+    assert!(db.enabled_guest().unwrap().is_none());
+    assert_eq!(db.session_count(g.id).unwrap(), 0);
+}
+
+#[test]
+fn old_databases_gain_the_guest_column() {
+    let conn = Connection::open_in_memory().unwrap();
+    conn.execute_batch(
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+         display_name TEXT NOT NULL DEFAULT '', password_hash TEXT NOT NULL, role TEXT NOT NULL,
+         disabled INTEGER NOT NULL DEFAULT 0, must_change_password INTEGER NOT NULL DEFAULT 0,
+         default_household INTEGER, theme TEXT NOT NULL DEFAULT 'system',
+         created_at TEXT NOT NULL, last_login TEXT);
+         INSERT INTO users (username, password_hash, role, created_at)
+         VALUES ('old', 'h', 'admin', 'x');",
+    )
+    .unwrap();
+    let db = AuthDb::init(conn).unwrap();
+    let users = db.users().unwrap();
+    assert_eq!(users.len(), 1);
+    assert!(!users[0].guest);
+}

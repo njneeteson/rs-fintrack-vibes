@@ -324,3 +324,124 @@ async fn first_admin_via_setup_token() {
             .ends_with("/login")
     );
 }
+
+#[tokio::test]
+async fn guest_access_is_controlled_by_admins() {
+    let mut admin = TestApp::new();
+    let slug = admin.with_admin_and_household().await;
+    let other = admin
+        .st
+        .households
+        .create_empty(&admin.st.auth, "Cottage")
+        .unwrap();
+    let home = admin.st.auth.household_by_slug(&slug).unwrap().unwrap();
+    let mut visitor = admin.client();
+
+    // Off by default: no button, and the guest route refuses.
+    assert!(
+        !visitor
+            .get(&url("/login"))
+            .await
+            .body
+            .contains("Continue as guest")
+    );
+    let r = visitor.post(&url("/login/guest"), &[]).await;
+    assert_eq!(r.status, StatusCode::FORBIDDEN);
+
+    // An admin turns it on with view-only access to one household.
+    let field = format!("p_{}", home.id);
+    let form = [
+        ("enabled", "1"),
+        ("display_name", "Visitor"),
+        (field.as_str(), "view"),
+    ];
+    assert!(
+        admin
+            .post(&url("/admin/guest"), &form)
+            .await
+            .status
+            .is_redirection()
+    );
+    assert!(
+        visitor
+            .get(&url("/login"))
+            .await
+            .body
+            .contains("Continue as guest")
+    );
+
+    // The guest signs in with the button and sees exactly what was granted.
+    assert!(
+        visitor
+            .post(&url("/login/guest"), &[])
+            .await
+            .status
+            .is_redirection()
+    );
+    let page = visitor.get(&url(&format!("/h/{slug}/transactions"))).await;
+    assert_eq!(page.status, StatusCode::OK);
+    assert!(page.body.contains("Browsing as a guest") && page.body.contains("Visitor"));
+    assert_eq!(
+        visitor
+            .get(&url(&format!("/h/{}", other.slug)))
+            .await
+            .status,
+        StatusCode::NOT_FOUND
+    );
+    let apply = url(&format!("/h/{slug}/categorize/apply"));
+    assert_eq!(
+        visitor.post(&apply, &[]).await.status,
+        StatusCode::FORBIDDEN
+    );
+    // No settings or password of its own, and no admin pages.
+    assert_eq!(
+        visitor.get(&url("/account")).await.status,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        visitor.get(&url("/admin/users")).await.status,
+        StatusCode::FORBIDDEN
+    );
+    // Nobody can sign in to it with a password, and admins can't edit it as a user.
+    let guest = admin.st.auth.guest().unwrap().unwrap();
+    let r = admin
+        .client()
+        .post(
+            &url("/login"),
+            &[("username", &guest.username), ("password", "")],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::UNAUTHORIZED);
+    assert!(
+        !admin
+            .get(&url("/admin/users"))
+            .await
+            .body
+            .contains(&format!("<td>{}</td>", guest.username))
+    );
+    let edit = url(&format!("/admin/users/{}", guest.id));
+    assert_eq!(admin.get(&edit).await.status, StatusCode::NOT_FOUND);
+
+    // Edit access is the admin's call too.
+    admin
+        .post(
+            &url("/admin/guest"),
+            &[("enabled", "1"), (field.as_str(), "edit")],
+        )
+        .await;
+    assert!(visitor.post(&apply, &[]).await.status.is_redirection());
+
+    // Turning it off signs the guest out and hides the button.
+    admin
+        .post(&url("/admin/guest"), &[(field.as_str(), "edit")])
+        .await;
+    let r = visitor.get(&url(&format!("/h/{slug}"))).await;
+    assert!(r.redirect().starts_with("/finances/login"));
+    assert!(
+        !visitor
+            .get(&url("/login"))
+            .await
+            .body
+            .contains("Continue as guest")
+    );
+}

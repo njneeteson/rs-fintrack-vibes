@@ -24,17 +24,18 @@ impl AuthDb {
             .optional()?)
     }
 
-    /// The user and their password hash, for signing in.
+    /// The user and their password hash, for signing in. Never the guest
+    /// account, which has no password.
     pub fn credentials(&self, username: &str) -> anyhow::Result<Option<(User, String)>> {
         Ok(self
             .conn()
             .query_row(
                 &format!(
-                    "SELECT {USER_COLS}, u.password_hash FROM users u WHERE u.username=?1 \
-                    COLLATE NOCASE"
+                    "SELECT {USER_COLS}, u.password_hash FROM users u \
+                     WHERE u.username=?1 COLLATE NOCASE AND u.guest = 0"
                 ),
                 [username.trim()],
-                |r| Ok((user_from_row(r)?, r.get(10)?)),
+                |r| Ok((user_from_row(r)?, r.get(USER_COL_COUNT)?)),
             )
             .optional()?)
     }

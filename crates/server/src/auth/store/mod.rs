@@ -46,6 +46,8 @@ pub struct User {
     pub theme: Theme,
     pub created_at: String,
     pub last_login: Option<String>,
+    /// The shared guest account (see `guest.rs`): no password, enabled by an admin.
+    pub guest: bool,
 }
 
 impl User {
@@ -110,7 +112,8 @@ CREATE TABLE IF NOT EXISTS users (
     default_household INTEGER REFERENCES households(id) ON DELETE SET NULL,
     theme TEXT NOT NULL DEFAULT 'system',
     created_at TEXT NOT NULL,
-    last_login TEXT
+    last_login TEXT,
+    guest INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS memberships (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -130,7 +133,22 @@ CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
 ";
 
 const USER_COLS: &str = "u.id, u.username, u.display_name, u.role, u.disabled, \
-    u.must_change_password, u.default_household, u.theme, u.created_at, u.last_login";
+    u.must_change_password, u.default_household, u.theme, u.created_at, u.last_login, u.guest";
+/// Number of columns in [`USER_COLS`]; extra selected columns start at this index.
+const USER_COL_COUNT: usize = 11;
+
+/// Bring an `auth.sqlite` created by an older version up to date.
+fn migrate(conn: &Connection) -> rusqlite::Result<()> {
+    let has_guest: bool = conn.query_row(
+        "SELECT COUNT(*) > 0 FROM pragma_table_info('users') WHERE name = 'guest'",
+        [],
+        |r| r.get(0),
+    )?;
+    if !has_guest {
+        conn.execute_batch("ALTER TABLE users ADD COLUMN guest INTEGER NOT NULL DEFAULT 0")?;
+    }
+    Ok(())
+}
 
 fn user_from_row(r: &Row<'_>) -> rusqlite::Result<User> {
     let role: String = r.get(3)?;
@@ -146,6 +164,7 @@ fn user_from_row(r: &Row<'_>) -> rusqlite::Result<User> {
         theme: Theme::from_key(&theme).unwrap_or(Theme::System),
         created_at: r.get(8)?,
         last_login: r.get(9)?,
+        guest: r.get(10)?,
     })
 }
 
@@ -193,6 +212,7 @@ impl AuthDb {
         conn.pragma_update(None, "foreign_keys", "ON")?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
         conn.execute_batch(SCHEMA).context("creating auth tables")?;
+        migrate(&conn).context("upgrading auth tables")?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -203,6 +223,7 @@ impl AuthDb {
     }
 }
 
+mod guest;
 mod households;
 mod memberships;
 mod sessions;

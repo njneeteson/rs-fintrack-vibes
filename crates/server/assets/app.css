@@ -827,3 +827,14 @@ tbody th {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* "Continue as guest" under the sign-in form. */
+.guest-login {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.guest-login button {
+  width: 100%;
+}

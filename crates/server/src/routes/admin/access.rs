@@ -1,6 +1,6 @@
 //! The access matrix: for every user and household, no access / view only / can edit.
 
-use super::{ACCESS, admin_tabs};
+use super::{ACCESS, admin_tabs, parse_perm, perm_select};
 use crate::auth::store::{Household, Perm, User};
 use crate::error::AppResult;
 use crate::extract::AdminCtx;
@@ -25,17 +25,6 @@ pub fn routes() -> Router<Shared> {
 
 fn field_name(user: i64, household: i64) -> String {
     format!("p_{user}_{household}")
-}
-
-fn perm_select(name: &str, current: Option<Perm>, label: &str) -> Markup {
-    html! {
-        select name=(name) aria-label=(label) {
-            option value="" selected[current.is_none()] { "No access" }
-            @for p in Perm::ALL {
-                option value=(p.key()) selected[current == Some(*p)] { (p.label()) }
-            }
-        }
-    }
 }
 
 /// One user's access to one household: a picker, or a note for admins.
@@ -66,8 +55,13 @@ fn matrix(
                         @for u in users {
                             tr {
                                 td {
-                                    (u.username)
-                                    @if u.disabled { span class="muted" { " (disabled)" } }
+                                    @if u.guest {
+                                        a href=(cx.url("/admin/guest")) { "Guest" }
+                                        @if u.disabled { span class="muted" { " (turned off)" } }
+                                    } @else {
+                                        (u.username)
+                                        @if u.disabled { span class="muted" { " (disabled)" } }
+                                    }
                                 }
                                 @for h in households { td { (cell(u, h, perms)) } }
                             }
@@ -110,9 +104,7 @@ async fn save(cx: AdminCtx, Form(fields): Form<HashMap<String, String>>) -> AppR
     for u in users.iter().filter(|u| !u.is_admin()) {
         for h in &households {
             if let Some(value) = fields.get(&field_name(u.id, h.id)) {
-                cx.st
-                    .auth
-                    .set_membership(u.id, h.id, Perm::from_key(value))?;
+                cx.st.auth.set_membership(u.id, h.id, parse_perm(value))?;
             }
         }
     }
