@@ -1,394 +1,440 @@
 # FinTrack
 
-**A private, fully offline household finance tracker** — import your bank's CSV
-exports, categorize transactions with rules, analyse where money comes from and
-goes, track budgets, and project your mortgage payoff with prepayments.
+A household finance tracker you run on your own home server and use from any
+browser on your network: `https://miniserver.local/finances`.
 
-FinTrack is a single native desktop application written in Rust
-([egui](https://github.com/emilk/egui)). It has **no networking code and no
-networking dependencies**: nothing is ever sent to or received from the
-internet. All data lives in a folder you choose.
+Import CSV exports from your bank, have transactions categorized by your own
+rules, and see where your money goes by week, month, quarter and year. Track
+budgets and a mortgage with prepayments and renewals. Everyone in the house gets
+their own sign-in, and an admin decides who can open which household and
+whether they can change anything.
+
+FinTrack never talks to the internet. There are no analytics and no CDN
+fonts or scripts, and all data stays on your server.
 
 ![Dashboard](docs/images/dashboard.png)
-
-- **User manual (PDF):** [docs/FinTrack-User-Manual.pdf](docs/FinTrack-User-Manual.pdf)
-- **In-app help:** the *Help* page, plus a hover tooltip on every **ℹ** marker.
-
----
 
 ## Contents
 
 1. [Features](#features)
-2. [Building and running](#building-and-running)
-3. [Where data is stored](#where-data-is-stored)
-4. [Quick start](#quick-start)
-5. [Architecture](#architecture)
-6. [Data flow](#data-flow)
-7. [How the key parts work](#how-the-key-parts-work)
-8. [Project layout](#project-layout)
-9. [Testing](#testing)
-10. [Extending FinTrack](#extending-fintrack)
-11. [Privacy and security](#privacy-and-security)
-12. [Known limitations](#known-limitations)
-13. [License](#license)
+2. [Quick start with Docker](#quick-start-with-docker)
+3. [Configuration](#configuration)
+4. [Behind a reverse proxy](#behind-a-reverse-proxy)
+5. [People, households and permissions](#people-households-and-permissions)
+6. [Data, backups and moving from the desktop app](#data-backups-and-moving-from-the-desktop-app)
+7. [Security](#security)
+8. [Architecture](#architecture)
+9. [How the key parts work](#how-the-key-parts-work)
+10. [Development](#development)
+11. [Known limitations](#known-limitations)
+12. [License](#license)
+
+A step-by-step user manual (with screenshots) is in
+[docs/FinTrack-User-Manual.pdf](docs/FinTrack-User-Manual.pdf); the same text
+is in the app under **Help**.
 
 ---
 
 ## Features
 
-**Databases**
-- Create any number of databases; each is a self-contained folder.
-- Open existing databases, recent list, and a **default database** opened at startup (Settings).
-- One-click backup to a single `.sqlite` file.
+**Import**
+- Upload bank CSV exports. Built-in formats cover Scotiabank and BMO; any
+  other bank's format is mapped once in a column mapper with a live preview,
+  then recognised automatically.
+- The account is detected from the account number in the file, a filename
+  hint, or the format the account normally uses.
+- Overlapping exports are de-duplicated: re-importing a file adds nothing,
+  while two genuinely identical purchases on the same day are both kept.
+- Import history with one-click undo. Every imported file is archived on the server.
 
-**CSV import**
-- Drag-and-drop or file picker; multiple files are queued.
-- **Automatic format detection** from the header row (or column shape for header-less files).
-- Built-in templates for **Scotiabank** (classic bank and credit-card exports, online-banking export) and **BMO** (bank account, credit card).
-- **Column mapper** for any other bank: guesses the mapping, shows a live preview, and saves the format so the next file is recognised automatically. Supports single signed amounts, separate debit/credit columns, a sign flip, a "direction" column (e.g. `Debit`/`Credit`), memo columns, account-number and balance columns, and skipping rows such as *Pending*.
-- **Automatic account detection** from account numbers in the file (masked numbers like `5191********1234` work), filename hints, or the format an account normally uses. Accounts can be created inline during import.
-- **Duplicate handling** for overlapping exports (see [below](#duplicate-detection)).
-- Every import is recorded in **import history** with one-click **undo**, and the original CSV is archived in the database folder.
+**Categorize**
+- Two-level categories (*Groceries / Save on Foods*, *Income / Mayfair*) of
+  kind Expense, Income or Transfer.
+- Mapping rules (contains / starts with / equals / regex on description or
+  memo, optional amount range, direction and account), applied in priority order.
+- An *Unmapped* view that groups uncategorized transactions by payee:
+  create a rule from a group, or assign a category once.
+- A manual override for any single transaction, which rules never change.
 
-**Categorization**
-- **Two-level categories** (`Groceries / Save on Foods`, `Income / Mayfair`) with kinds *Expense*, *Income* and *Transfer*.
-- Category manager: add, rename, re-parent, change kind, delete with optional reassignment.
-- **Mapping rules**: description/memo *contains / starts with / equals / regex*, optionally limited by direction (money in/out), amount range and account, with priorities.
-- **Unmapped view** groups uncategorized transactions by payee for one-click rule creation (or one-off assignment).
-- **Manual overrides** per transaction that rules never change (✋ marker), bulk editing, notes.
-- Rule editor with a **live preview** of matching transactions, and a rule tester.
+**Understand**
+- Dashboard: this month's income, spending, net and savings rate; spending
+  by category; budget progress; 12-month cash flow; balances; upcoming bills.
+- Analytics with weekly / monthly / quarterly / annual periods, grouped by
+  top-level category, subcategory, account or payee: cash flow, stacked
+  breakdown with pivot table, trends, top payees, detected subscriptions,
+  balances and net worth. Click any group to see its transactions.
+- Budgets per category with on-track / close / over status.
+- Mortgage tracker with Canadian semi-annual compounding, prepayments
+  (date and amount), rate changes at renewal, a what-if extra payment, and
+  baseline-vs-prepayment comparison of payoff date and interest.
 
-**Analytics** (weekly, monthly, quarterly, annual; any date range)
-- **Cash flow**: income vs spending per period, net and savings rate.
-- **Breakdown**: stacked chart, ranking and pivot table bucketed by **top-level category, subcategory, account or payee**; click any bucket to drill into its transactions.
-- **Trends** for any single bucket, **top payees**, **recurring payment detection** (subscriptions and bills with monthly cost), **account balances and net worth** over time.
-- Dashboard with this month's headline numbers, budget status, last 12 months and upcoming recurring payments.
-
-**Budgets**
-- Monthly budget per category (top-level budgets include their subcategories), viewed per week, month, quarter or year, with colour **and** text status, plus "suggest from my average".
-
-**Mortgage tracker**
-- Canadian **semi-annual compounding**, all common payment frequencies including accelerated bi-weekly/weekly.
-- Progress to date, full schedule (per year or per payment), balance chart.
-- **Prepayments** (date + amount) and **rate changes / renewals**; toggle prepayments on/off and add a "what-if" extra amount per payment to compare against the baseline: payoff date, interest saved and time saved.
-
-**Demo mode**
-- **Enter demo mode** on the start screen (or *File ▸ Try the demo*) opens a built-in sample household — 18 months of transactions, rules, budgets and a mortgage — in a temporary folder. A banner marks demo mode; the demo is never added to recent/default databases and is deleted when you exit it or close FinTrack.
-
-**Other**
-- Light and dark mode (toggle in the menu bar, or follow the system), Transactions CSV export, command-line options for opening a page or importing files.
-
-| | |
-|---|---|
-| ![Transactions](docs/images/transactions.png) | ![Mapping columns of an unknown CSV](docs/images/import-mapping.png) |
-| ![Mapping rules](docs/images/categorize.png) | ![Mortgage (dark mode)](docs/images/mortgage-dark.png) |
+**Share safely**
+- Local accounts: **admins** manage people and households; **users** see only
+  the households they're given, either *view only* or *can edit*.
+- Several households on one server, each in its own database folder.
+- Works on phones, has a light and a dark theme, and everything has tooltips and an in-app guide.
 
 ---
 
-## Building and running
+## Quick start with Docker
 
-Requirements: a recent stable Rust toolchain (edition 2024, Rust ≥ 1.88). Dependencies
-are fetched by Cargo at build time; the built application never uses the network.
+> **Small server?** [DEPLOY.md](DEPLOY.md) explains how to deploy a prebuilt
+> image (published to `ghcr.io` by GitHub Actions, or copied over as a file)
+> so the server never has to compile anything.
+
+To build on the server itself (Docker with Compose v2):
 
 ```sh
-cargo run --release              # build and start FinTrack
-cargo build --release            # binary at target/release/fintrack(.exe)
+git clone <this repository> fintrack && cd fintrack
+docker compose up -d --build
+docker compose logs fintrack
 ```
 
-### Command-line options
+The log shows a **one-time setup link** such as
+`/finances/setup?token=…`. Open it through your reverse proxy, e.g.
+`https://miniserver.local/finances/setup?token=…`, and create the first admin
+account. Then:
 
-```text
-fintrack [--demo] [--page <page>] [--import <file.csv>]... [file.csv]...
-```
+1. **Manage households → New household.** Tick *Fill with demo data* if you
+   want to explore with 18 months of sample transactions first.
+2. **Manage users → Add a user** for each person. FinTrack shows a temporary
+   password; they choose their own when they first sign in.
+3. **Access tab:** choose *View only* or *Can edit* for each person and household.
 
-| Option | Meaning |
-|---|---|
-| `--demo` | Start in demo mode instead of opening the default database. |
-| `--page <page>` | Open on a page: `dashboard`, `transactions`, `import`, `categorize`, `categories`, `accounts`, `analytics`, `budgets`, `mortgage`, `settings`, `help`. |
-| `--import <file>` / bare file paths | Queue CSV files on the Import page of the default database (works with *Open with…*). |
-
-| Environment variable | Meaning |
-|---|---|
-| `FINTRACK_SETTINGS` | Path of the settings file to use instead of the per-user default (portable installs, testing). |
-
-### Demo data
-
-The demo is generated by `src/demo.rs` (deterministic, ~18 months ending
-today, imported through the real pipeline including an overlapping export to
-show duplicate handling). In the app it backs **demo mode**
-(`%TEMP%\FinTrack-demo-<pid>`, deleted on exit; folders left by a crash are
-cleaned up after 12 hours). To keep a copy on disk:
+Prefer not to use the setup link? Set `FINTRACK_ADMIN_USER` and
+`FINTRACK_ADMIN_PASSWORD` for the first start, or run:
 
 ```sh
-cargo run --example demo_data -- <output-folder>
+docker compose exec fintrack fintrack-server admin create alice
 ```
 
-This creates `<output-folder>/Demo Household` plus the generated bank CSVs in
-`<output-folder>/sample-csvs/` so you can try importing them yourself.
+The server has no reverse proxy yet?
+[docker/compose.with-caddy.yaml](docker/compose.with-caddy.yaml) runs FinTrack
+together with Caddy, which serves HTTPS at `/finances`.
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `fintrack-server` (or `serve`) | Run the web server |
+| `fintrack-server admin create <name>` | Create an admin with a temporary password |
+| `fintrack-server admin reset-password <name>` | Give anyone a new temporary password (e.g. a locked-out admin) |
+| `fintrack-server admin list` | List accounts |
+| `fintrack-server healthcheck` | Exit 0 if the server answers (used by the container health check) |
+
+Inside the container, prefix with `docker compose exec fintrack`.
 
 ---
 
-## Where data is stored
+## Configuration
+
+All settings are environment variables.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `FINTRACK_BASE_PATH` | `/` | URL prefix the app lives under, e.g. `/finances`. Any path works. |
+| `FINTRACK_BIND` | `0.0.0.0:8080` | Address and port to listen on. |
+| `FINTRACK_DATA_DIR` | `/data` | Where accounts and households are stored. |
+| `FINTRACK_SECURE_COOKIES` | `true` | Sign-in cookies are sent over HTTPS only. Set `false` only if you really serve plain HTTP. |
+| `FINTRACK_SESSION_DAYS` | `30` | How long "Keep me signed in" lasts (renewed on use). Other sessions end after 12 idle hours or when the browser closes. |
+| `FINTRACK_MAX_UPLOAD_MB` | `50` | Largest CSV or database upload. |
+| `FINTRACK_ADMIN_USER` / `FINTRACK_ADMIN_PASSWORD` | unset | Create this admin on start-up if no admin exists. |
+| `TZ` | `UTC` | Time zone for "today", "this month" and so on. |
+| `RUST_LOG` | `info` | Log level (`debug` for more detail). |
+
+---
+
+## Behind a reverse proxy
+
+FinTrack serves plain HTTP. Put it behind the reverse proxy you already use for
+HTTPS. The proxy must forward the **full path**, *including* the prefix. Don't
+strip `/finances`, and set `FINTRACK_BASE_PATH` to the same prefix.
+
+| Proxy | Example |
+|---|---|
+| Caddy | [docker/Caddyfile.example](docker/Caddyfile.example): `handle /finances* { reverse_proxy fintrack:8080 }` |
+| nginx | [docker/nginx.conf.example](docker/nginx.conf.example): `location /finances { proxy_pass http://127.0.0.1:8080; … }` |
+| Traefik | [docker/traefik.example.yaml](docker/traefik.example.yaml): `PathPrefix(\`/finances\`)`, no StripPrefix |
+
+The proxy should pass `X-Forwarded-Proto`, `X-Forwarded-Host` and
+`X-Forwarded-For` (Caddy and Traefik do this by default). If the sign-in page
+warns that it was opened over plain HTTP, the browser isn't using HTTPS or the
+proxy isn't sending `X-Forwarded-Proto: https`.
+
+`http://server:8080/` redirects to the base path, and the base path works with
+or without a trailing slash.
+
+---
+
+## People, households and permissions
+
+| | Admin | User with *Can edit* | User with *View only* | User without access |
+|---|---|---|---|---|
+| See dashboard, transactions, analytics, budgets, mortgage | ✔ all households | ✔ | ✔ | the household doesn't appear |
+| Import, categorize, edit rules, categories, accounts, budgets, mortgage | ✔ | ✔ | ✘ | ✘ |
+| Manage users, households and access | ✔ | ✘ | ✘ | ✘ |
+
+- Admins create, edit, disable and delete accounts and reset passwords. An admin
+  can't delete or demote themselves, and the last active admin can't be removed.
+- Disabling a user, resetting their password or deleting them signs them out
+  everywhere immediately.
+- Anyone can change their own name, theme, starting household and password
+  under **My account**, and sign out their other devices.
+
+---
+
+## Data, backups and moving from the desktop app
 
 ```text
-<your database folder>/            e.g. Documents/Household Finances/
-├── fintrack.sqlite                 everything: accounts, transactions, categories, rules,
-│                                   CSV formats, budgets, mortgages, import history
-└── imports/                        timestamped copy of every imported CSV (optional)
+/data
+├── auth.sqlite            users, households, access, sessions
+└── households/
+    ├── neeteson-home/     one FinTrack database folder per household
+    │   ├── fintrack.sqlite
+    │   ├── imports/        a copy of every imported CSV
+    │   └── sample-csvs/    (demo households only)
+    └── .trash/             deleted households, kept until you remove them
 ```
 
-Settings (default database, recent list, theme, import options) are a small
-JSON file in the per-user config directory — on Windows
-`%APPDATA%\FinTrack\config\settings.json`. The Settings page shows the exact path.
+- **Backups:** *Manage households → Download backup* writes a consistent
+  snapshot of a household's `fintrack.sqlite` while the server runs. To back up
+  everything, stop the container and copy the volume.
+- **Restore or migrate:** *Manage households → Restore or migrate a database*
+  accepts a `fintrack.sqlite` from the FinTrack desktop app or a downloaded
+  backup and creates a household from it. Older databases are upgraded automatically.
+- **Copying folders in:** a database folder copied into `households/` with a
+  lowercase, dash-separated name (e.g. `cottage`) is registered as a household
+  the next time the server starts.
+- **Deleting** a household moves its folder to `households/.trash/`; nothing is
+  destroyed until you delete it there.
 
 ---
 
-## Quick start
+## Security
 
-0. **Just exploring?** Click **Enter demo mode** on the start screen.
-1. **Create a database** — *File ▸ New database* (or the start screen): choose a name and a location.
-2. **Import** — *Import CSV ▸ Choose CSV files…* or drag files onto the window. Pick or create the account if it isn't detected.
-3. **Categorize** — *Mapping rules ▸ Unmapped*: click *Create rule…* next to each payee.
-4. **Explore** — Dashboard, Analytics, Budgets, Mortgage.
-5. **Make it the default** — *Settings ▸ Startup ▸ Use the current database*.
+- **Passwords** are stored as Argon2id hashes. New and reset accounts get a
+  random temporary password that must be changed at first sign-in.
+- **Sessions** are random 256-bit tokens in `HttpOnly`, `SameSite=Lax`,
+  `Secure` cookies scoped to the base path. The server stores only their
+  SHA-256 hash.
+- **Throttling:** after 5 wrong passwords for a username or from an address,
+  each further attempt has to wait longer (1 s, 2 s, 4 s … up to 5 minutes).
+  The error never says whether the username exists.
+- **Cross-site protection:** every change must come from FinTrack's own pages,
+  checked with the browser's `Sec-Fetch-Site`/`Origin` headers on top of
+  `SameSite` cookies.
+- **Isolation:** a household is only reachable by its members and admins.
+  Anyone else gets *Not found*. View-only members are refused every change
+  on the server, not just in the interface.
+- **Headers:** a strict Content-Security-Policy (only FinTrack's own scripts),
+  `X-Frame-Options: DENY`, `nosniff`, and `Cache-Control: no-store` on pages.
+  htmx is configured without `eval` or script execution, and with no page
+  snapshots in browser storage, so finance pages aren't kept in `localStorage`.
+  Back/forward reloads the page from the server instead.
+- **First admin:** the setup page needs a random token printed to the server
+  log, so a guest on your network can't claim the admin account first.
+- The container runs as an unprivileged user in a distroless image (no shell).
 
-The [user manual](docs/FinTrack-User-Manual.pdf) walks through every screen.
+Household databases are not encrypted at rest. Protect the server and its backups.
 
 ---
 
 ## Architecture
 
-The crate is a library (`fintrack`) plus a thin binary (`src/main.rs`). The
-library is split into a **UI-free core** and the **egui front-end**:
+A Cargo workspace with two crates:
 
-| Layer | Modules | Responsibility |
-|---|---|---|
-| Domain | `model` | Plain data types: `Money` (integer cents), `Transaction`, `Account`, `Category`/`CategoryTree`, `Rule`, `CsvFormat`/`FormatSpec`, `Mortgage`, `Budget`. |
-| Import | `import::{reader, detect, parse, dedup, builtin}` | Read CSV → recognise format / guess mapping → parse rows → group by account → detect account → classify duplicates. Pure functions. |
-| Categorization | `categorize` | Compiles rules into a `RuleEngine`; first match by priority wins; payee-pattern suggestion. |
-| Analytics | `analytics::{period, range, flow, aggregate, summary, balances, recurring, budget}` | Pure aggregations over in-memory transactions. |
-| Mortgage | `mortgage::{amortization, …}` | Schedules with semi-annual compounding, prepayments, rate changes; progress and scenario comparison. |
-| Storage | `db::*` | `Database` wraps one SQLite connection; one submodule per table adds methods. Schema migrations via `PRAGMA user_version`. |
-| Settings | `settings` | JSON settings file. |
-| Help | `help` | Every tooltip and help topic in one place, shared by the UI and documentation. |
-| UI | `ui::{state, data, widgets, charts, filters, theme, launch, pages::*}` | Application shell, shared widgets and one module per page. |
+| Crate | Role |
+|---|---|
+| `crates/core` (`fintrack-core`) | Everything about money: CSV reading and format detection, duplicate detection, the rule engine, analytics, budgets, mortgage maths, and SQLite storage for one household. No HTTP, no users. |
+| `crates/server` (`fintrack-server`) | The web app: configuration, accounts and sessions, households, permission checks, and the pages (HTML rendered on the server with [maud](https://maud.lambda.xyz)). |
 
-Design principles:
+The server renders complete HTML pages and handles plain form posts, and
+**[htmx](https://htmx.org)** makes them feel like an app on top of that:
 
-- **Core is UI-agnostic and tested.** Everything outside `ui` is covered by unit tests and has no egui dependency.
-- **One source of truth.** The SQLite database holds all state. The UI keeps a read-only `DataCache` snapshot that is reloaded after every change (`generation` counter lets pages invalidate derived caches).
-- **Pages don't mutate each other.** A page receives a `PageCtx` (database, cache, settings, palette, and an `Outbox`). Side effects — reload, navigate, open the rule editor with a draft, show a status message, open a database — are requested through the `Outbox` and applied by the shell after the frame.
-- **Small modules, shared building blocks.** Enum plumbing (`str_enum!`), pickers, tiles, cards, charts and the date-range selector are written once and reused.
+- Every link and form is *boosted*: the next page loads in place without a full
+  reload, with a loading bar; actions that return to the same page keep your
+  scroll position.
+- The transaction and analytics filters refresh their results as you change
+  them (search is debounced), and the address bar follows so views stay
+  bookmarkable.
+- Changing a transaction's category replaces just that table row.
+- The column mapper and the rule editor show a live preview as you edit.
+- Messages ("Rule saved") appear as toasts.
 
----
+**Charts** are drawn by [Chart.js](https://www.chartjs.org) from JSON the server
+puts on each `<canvas>` (`views/charts`). They have tooltips listing every series
+at a point (with totals for stacked bars), legends you can click to hide a
+series, and clickable bars and points that open the transactions behind them.
+Each chart also has a *Show as table* view of the same data.
 
-## Data flow
+Our own scripts are small and readable:
+[`app.js`](crates/server/assets/app.js) (tooltips, confirmations, menus,
+shortcuts, toasts) and [`charts.js`](crates/server/assets/charts.js). htmx 2.0.4
+and Chart.js 4.4.7 are vendored. Everything is compiled into the binary, so
+nothing is loaded from a CDN. Without JavaScript every page still works with
+ordinary page loads, and charts show as tables.
 
 ```mermaid
 flowchart LR
-    subgraph Disk["Local disk (no network)"]
-        CSV[/"Bank CSV files"/]
-        SQL[("fintrack.sqlite")]
-        ARCH[/"imports/ archive"/]
-        SET[/"settings.json"/]
+    B[Browser] -->|HTTPS /finances/...| P[Reverse proxy]
+    P -->|HTTP, full path| N[Path normalisation]
+    subgraph S[fintrack-server]
+        N --> R[Router under base path]
+        R --> G{Cross-site guard}
+        G -->|blocked| X[403]
+        G --> F[Flash messages]
+        F --> L{Signed in?}
+        L -->|no| SI[Sign-in page]
+        L -->|yes| E{Extractors:<br/>Ctx / HhCtx / EditCtx / AdminCtx}
+        E -->|not a member| NF[404]
+        E -->|view only, change| FB[403]
+        E --> H[Page handler]
+        H --> V[views: layout, components, chart data]
     end
-
-    subgraph Import["import (pure)"]
-        R["reader<br/>RawCsv"] --> D["detect<br/>format match / guess"]
-        D --> P["parse<br/>FormatSpec → ParsedRow"]
-        P --> G["group_by_account<br/>+ detect_account"]
-        G --> DD["dedup<br/>fingerprint + seq"]
-    end
-
-    subgraph Core["categorize / analytics / mortgage (pure)"]
-        RE["RuleEngine"]
-        AN["analytics<br/>periods · breakdown · budgets · recurring · balances"]
-        MO["mortgage<br/>schedule · progress · compare"]
-    end
-
-    subgraph DB["db::Database"]
-        CI["commit_import"]
-        AR["apply_rules"]
-        CRUD["CRUD: accounts, categories,<br/>rules, formats, budgets, mortgages,<br/>overrides, notes"]
-    end
-
-    subgraph UI["ui (egui)"]
-        SHELL["App shell<br/>menu · nav · status · Outbox"]
-        CACHE["DataCache<br/>(read-only snapshot)"]
-        PAGES["Pages<br/>Dashboard · Transactions · Import · Rules ·<br/>Categories · Accounts · Analytics · Budgets · Mortgage"]
-    end
-
-    CSV --> R
-    CSV -. copy .-> ARCH
-    DD -->|preview duplicates| PAGES
-    PAGES -->|user confirms accounts| CI
-    CI --> SQL
-    CI --> AR
-    AR --> RE
-    RE --> AR
-    AR --> SQL
-    PAGES -->|edits| CRUD --> SQL
-    SQL -->|reload after each change| CACHE
-    CACHE --> PAGES
-    CACHE --> AN --> PAGES
-    CACHE --> MO --> PAGES
-    SHELL <--> SET
-    SHELL --> PAGES
+    L <-->|sessions, users| A[(auth.sqlite)]
+    E <-->|who may see what| A
+    H -->|spawn_blocking| C[fintrack-core]
+    C <--> D[(households/slug/fintrack.sqlite)]
 ```
 
-The import flow in detail:
+Importing a file goes through a short-lived *pending import* held in memory
+(keyed by an unguessable id, private to one user and household):
 
 ```mermaid
 sequenceDiagram
     actor U as User
-    participant IP as Import page
-    participant IM as import::*
-    participant DB as Database
-    U->>IP: choose / drop CSV
-    IP->>IM: RawCsv::from_path
-    IP->>IM: detect_format(raw, saved formats)
-    alt format unknown
-        IP->>IM: guess_spec(raw)
-        U->>IP: adjust mapping (live preview)
-        IP->>DB: save_format
+    participant W as Import pages
+    participant P as Pending import
+    participant C as fintrack-core
+    participant D as Household DB
+    U->>W: upload CSV(s)
+    W->>C: read file, detect format
+    alt format recognised
+        C-->>P: parsed rows grouped by account number
+        W-->>U: review page
+    else unknown format
+        W-->>U: column mapper (guessed mapping, live preview)
+        U->>W: save format
+        W->>D: save format
+        W->>C: parse with it
     end
-    IP->>IM: parse_all → group_by_account → assign_accounts
-    IP->>DB: preview_duplicates (per account)
-    U->>IP: confirm / change accounts, Import
-    IP->>DB: archive_csv, commit_import (one SQL transaction)
-    IP->>DB: learn_account_identity, apply_rules
-    DB-->>IP: summary (new / duplicates / categorized)
+    W->>D: detect accounts, preview duplicates
+    U->>W: choose / create accounts, Import
+    W->>D: archive CSV, insert new rows, learn account number
+    W->>D: re-apply rules
+    W-->>U: summary, then next file / categorize
+```
+
+### Server modules
+
+```text
+crates/server/src
+├── main.rs              serve / admin / healthcheck
+├── cli.rs               account recovery and health check commands
+├── config.rs            FINTRACK_* environment variables
+├── state.rs             shared state; short-lived pending items
+├── households.rs        household folders: create, demo, restore, delete, backup
+├── extract.rs           Ctx, HhCtx, EditCtx, AdminCtx: who may see/change what
+├── auth/                passwords, sessions, throttling, cross-site guard, store/
+├── flash.rs, error.rs, form.rs, assets.rs, htmx.rs
+├── views/               layout, nav, components, forms, format, charts/ (Chart.js data)
+└── routes/
+    ├── signin.rs, account.rs, home.rs
+    ├── admin/           users, households, access matrix
+    └── hh/              dashboard, transactions/, import/, categorize/,
+                         categories, accounts, analytics/, budgets, mortgage/, help
 ```
 
 ---
 
 ## How the key parts work
 
-### Money and sign convention
-Amounts are `Money(i64)` cents — no floating-point rounding errors. **Positive =
-money in, negative = money out**, regardless of how the bank exports it (the
-format's *flip sign* / *direction column* options normalise this).
+**Money and signs.** Amounts are `Money(i64)` cents, so there are no
+floating-point rounding errors. Positive means money in, negative means money
+out, whatever the bank's export does. A format's *flip sign* and *direction
+column* options normalise this.
 
-### Format detection
-A saved format with a header has a **header signature** (normalised header
-cells). The first 25 rows of a file are searched for that signature, which also
-skips bank preambles. Header-less formats match when the first rows have the
-expected column count and parse successfully. Header matches outrank shape
-matches; user-defined formats outrank built-ins.
+**Format detection.** A format with a header has a *header signature*
+(normalised header cells). FinTrack searches the first 25 rows for it, which
+also skips bank preambles. A header-less format matches when the first rows have the
+expected column count and parse. Header matches outrank shape matches, and
+your own formats outrank built-in ones.
 
-### Account detection
-For each group of rows (grouped by the account-number column, if any):
-1. an account whose number matches (exact for long unmasked numbers, otherwise last 4 digits);
-2. an account whose *filename hint* appears in the file name;
-3. the only account that normally uses this format.
+**Account detection.** For each group of rows (split by an account-number
+column, if any) FinTrack tries, in order: an account with a matching number (exact for long
+unmasked numbers, otherwise the last four digits), an account whose filename
+hint appears in the file name, then the only account that uses this format. A
+signal counts only if it picks exactly one active account.
 
-A signal is used only if it identifies exactly one active account. After
-import, FinTrack stores the account number and format it saw on that account.
-
-### Duplicate detection
-Each transaction has a **fingerprint** — `date | amount | normalised description`
-— and a **sequence number** among identical fingerprints in its account. When
-importing, the *k*-th occurrence of a fingerprint in the file is a duplicate if
-the account already holds at least *k* transactions with that fingerprint. So
-overlapping exports never double-count, while two genuinely identical purchases
-on the same day are both kept. The database enforces
+**Duplicates.** Each transaction has a fingerprint (`date | amount |
+normalised description`) and a sequence number among identical fingerprints in
+its account. The *k*-th occurrence of a fingerprint in a file is a duplicate if
+the account already has *k* of them, so overlapping exports never double-count
+and identical purchases on the same day survive. The database enforces
 `UNIQUE(account_id, fingerprint, seq)`.
 
-### Categorization
-`category = manual override ?? rule result`. The engine sorts enabled rules by
-`(priority, id)`; text matching is case- and whitespace-insensitive; regex rules
-are case-insensitive. Rules are re-applied to every transaction whenever a rule
-changes and after each import — only the automatic column is updated, so manual
-overrides are never lost.
+**Categorization.** The category is the manual override if there is one,
+otherwise the rule result. Rules are sorted by
+`(priority, id)`. Text matching ignores case and extra spaces, and regex rules are
+case-insensitive. Rules are re-applied after every rule change and import; only
+the automatic category changes.
 
-### Analytics semantics
-- *Transfer* categories are excluded from income and spending.
-- *Spending* = −amount for Expense categories (refunds reduce spending); *Income* = amount.
-- Uncategorized transactions count as spending or income by sign.
-- Weeks start on Monday. Budgets scale by period length (×3 quarterly, ×12 annual, ×12/52 weekly).
+**Analytics.** Transfer categories are excluded. Spending is −amount for
+Expense categories (refunds reduce it); income is the amount. Uncategorized
+transactions count by sign. Weeks start on Monday. Budgets scale by period
+length (×3 quarterly, ×12 annual).
 
-### Mortgage maths
-Periodic rate for *n* payments per year: `(1 + j/2)^(2/n) − 1` (Canadian
-semi-annual compounding). Level payment `P·r / (1 − (1+r)^−N)`. Accelerated
-bi-weekly/weekly pay the monthly payment ÷ 2 / ÷ 4. Prepayments are applied
-after the payment on or after their date and shorten the amortization. At a
-rate change the payment is recalculated over the *remaining* amortization (time
-the balance would take at the old rate and payment), so time saved by earlier
-prepayments is kept. The final payment absorbs cent-rounding residue.
+**Mortgage.** The periodic rate for *n* payments a year is `(1 + j/2)^(2/n) − 1`.
+Accelerated bi-weekly and weekly payments are the monthly payment ÷ 2 and ÷ 4.
+Prepayments apply after the payment on or after their date. At a rate change
+the payment is recalculated over the remaining amortization, so time saved by
+earlier prepayments is kept.
 
 ---
 
-## Project layout
+## Development
 
-```text
-src/
-├── main.rs                 binary: parse LaunchOptions, start eframe
-├── lib.rs                  crate root
-├── enum_macro.rs           str_enum! (storage key, label, ALL, parsing)
-├── help.rs                 all tooltips and help topics
-├── settings.rs             AppSettings (JSON)
-├── demo.rs                 built-in demo data generator and temporary DemoWorkspace
-├── model/                  money, account, category, rule, format, transaction, mortgage
-├── import/                 reader, detect, parse, dedup, builtin, mod (grouping, account detection)
-├── categorize/             rule engine, pattern suggestion
-├── analytics/              period, range, flow, aggregate, summary, balances, recurring, budget
-├── mortgage/               amortization, progress & comparison
-├── db/                     schema, seed, sql conversions, one file per table
-└── ui/
-    ├── mod.rs              app shell (menu, nav, status bar, database lifecycle, Outbox handling)
-    ├── state.rs            View, Outbox, PageCtx, AppAction
-    ├── data.rs             DataCache
-    ├── launch.rs           command-line options
-    ├── widgets.rs          pickers, tiles, cards, confirm buttons, help markers
-    ├── charts.rs           cash-flow, stacked, line and bar-list charts
-    ├── filters.rs          date range selector
-    ├── theme.rs            validated colour palette (light/dark) and status colours
-    └── pages/              dashboard, transactions, import/{mapping,review}, categorize/{unmapped,rules,editor},
-                            categories, accounts, analytics/{cash_flow,breakdown,trends,payees,recurring,balances},
-                            budgets, mortgage/{form,projection}, settings, help, start
-examples/demo_data.rs       demo database generator
-docs/                       user manual (HTML source + PDF) and screenshots
-```
-
----
-
-## Testing
+Requires Rust 1.88 or newer.
 
 ```sh
-cargo test                       # unit tests for the core (parsing, detection, dedup, rules,
-                                 # analytics, mortgage maths, database layer, settings, CLI)
-cargo clippy --all-targets       # lints (clean)
-cargo fmt                        # formatting (rustfmt.toml)
+cargo test --workspace                     # unit + HTTP integration tests
+cargo clippy --workspace --all-targets
+cargo fmt --all --check                    # 100-column lines (rustfmt.toml)
+
+# Run locally at http://127.0.0.1:8080/finances (plain HTTP, so no secure cookies)
+FINTRACK_DATA_DIR=./data FINTRACK_BASE_PATH=/finances \
+FINTRACK_BIND=127.0.0.1:8080 FINTRACK_SECURE_COOKIES=false \
+cargo run -p fintrack-server
+
+# Generate a demo database folder without the server
+cargo run -p fintrack-core --example demo_data -- ./demo
 ```
 
-The database tests run against temporary on-disk databases.
+The integration tests in `crates/server/tests` drive the whole app (mounted
+at `/finances`) through HTTP requests. They cover sign-in and throttling,
+cross-site blocking, the permission rules, admin safeguards, the first-run
+setup link, every page rendering, and an import round trip with duplicate
+detection.
 
----
-
-## Extending FinTrack
-
-- **A new built-in bank format** — add a `(name, FormatSpec)` entry to `import/builtin.rs` and a detection test in `import/detect.rs`. (Users can also just map it in the app.)
-- **A new page** — add a variant to `View` in `ui/state.rs`, a module under `ui/pages/`, a field in `Pages` and a match arm in `Session::show` (`ui/mod.rs`).
-- **A new analytic** — write a pure function in `analytics/` with a unit test, then render it from a page.
-- **Schema changes** — append a migration to `MIGRATIONS` in `db/schema.rs`; existing databases upgrade automatically on open.
-- **Help text** — add tooltips to `help::tips` and topics to `help::TOPICS`; the Help page picks them up.
-
----
-
-## Privacy and security
-
-- No networking code or networking crates (`cargo tree` contains no HTTP client, socket or async runtime crates). The binary only reads and writes files you choose plus its settings file.
-- The SQLite database is **not encrypted**. Store it on an encrypted drive (BitLocker, FileVault, …) if others can access your computer.
-- Imported CSVs are archived in `imports/` by default (turn off in Settings).
+**Adding a page:** create a module under `routes/hh/`, take `HhCtx` to read
+and `EditCtx` to change, render with `views::hh_page`, and add it to the side menu in
+`views/nav.rs`. **Adding a bank:** add a format to
+`crates/core/src/import/builtin.rs`, or map it once in the app.
 
 ---
 
 ## Known limitations
 
-- Built-in Scotiabank/BMO templates follow commonly seen export layouts; banks change their exports occasionally — use *Edit mapping* if a file isn't read correctly.
-- If a bank changes a transaction's description between exports (e.g. pending → posted), the two versions are not recognised as duplicates; use the *skip rows* filter for pending rows or delete the duplicate manually.
-- Decimal-comma number formats (`1.234,56`) are not supported.
-- Balances are computed from opening balance + imported transactions; the bank's own running balance column is stored but not used for reconciliation.
+- Built-in Scotiabank/BMO formats follow commonly seen layouts. Banks change
+  their exports occasionally, so use *Edit mapping* when a file isn't read correctly.
+- If a bank changes a transaction's description between exports (pending vs
+  posted), the two versions aren't recognised as duplicates. Use the *skip rows*
+  filter for pending rows.
+- Decimal-comma amounts (`1.234,56`) aren't supported.
+- Balances come from opening balance plus imported transactions; the bank's
+  running balance column is stored but not used to reconcile.
+- One server process per data directory (SQLite); the pending-import step
+  is lost if the server restarts mid-import.
 
 ## License
 

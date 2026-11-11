@@ -1,0 +1,20 @@
+# Caddy in front of FinTrack at https://miniserver.local/finances
+#
+# `handle` (not `handle_path`) keeps the /finances prefix, which FinTrack
+# expects (FINTRACK_BASE_PATH=/finances). Caddy sets X-Forwarded-For,
+# X-Forwarded-Proto and X-Forwarded-Host itself.
+
+miniserver.local {
+	# A certificate from Caddy's own local CA, since .local names can't get
+	# public certificates. Install its root certificate on your devices once
+	# (on the Caddy host: `caddy trust`; see compose.with-caddy.yaml for Docker).
+	tls internal
+
+	handle /finances* {
+		# FinTrack running in Docker on the same network…
+		reverse_proxy fintrack:8080
+		# …or published on this machine: reverse_proxy 127.0.0.1:8080
+	}
+
+	# Your other services go here.
+}

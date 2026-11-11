@@ -1,0 +1,14 @@
+# Traefik labels for FinTrack at https://miniserver.local/finances
+#
+# Merge into the `fintrack` service of compose.yaml (and remove its `ports:`).
+# No StripPrefix middleware: FinTrack expects the /finances prefix
+# (FINTRACK_BASE_PATH=/finances).
+
+services:
+  fintrack:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.fintrack.rule=Host(`miniserver.local`) && PathPrefix(`/finances`)
+      - traefik.http.routers.fintrack.entrypoints=websecure
+      - traefik.http.routers.fintrack.tls=true
+      - traefik.http.services.fintrack.loadbalancer.server.port=8080
